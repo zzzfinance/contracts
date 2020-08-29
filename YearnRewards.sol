@@ -595,8 +595,8 @@ pragma solidity ^0.5.0;
 contract LPTokenWrapper {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-
-    IERC20 public y = IERC20(0xdF5e0e81Dff6FAF3A7e52BA697820c5e32D806A8);
+    // Token to be staked
+    IERC20 public bpt = IERC20(address(0));
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
@@ -612,19 +612,23 @@ contract LPTokenWrapper {
     function stake(uint256 amount) public {
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
-        y.safeTransferFrom(msg.sender, address(this), amount);
+        bpt.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public {
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        y.safeTransfer(msg.sender, amount);
+        bpt.safeTransfer(msg.sender, amount);
+    } 
+    function setBPT(address BPTAddress) internal {
+        bpt = IERC20(BPTAddress);
     }
 }
 
 contract YearnRewards is LPTokenWrapper, IRewardDistributionRecipient {
-    IERC20 public yfi = IERC20(0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e);
-    uint256 public constant DURATION = 7 days;
+    // Token to be rewarded
+    IERC20 public yfi = IERC20(address(0));
+    uint256 public constant DURATION = 15 days;
 
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
@@ -647,7 +651,10 @@ contract YearnRewards is LPTokenWrapper, IRewardDistributionRecipient {
         }
         _;
     }
-
+    function setYFI(address YFIAddress,address BPTAddress) external onlyRewardDistribution {
+        setBPT(BPTAddress);
+        yfi = IERC20(YFIAddress);
+    }
     function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
     }
